@@ -1,123 +1,100 @@
-#!/usr/bin/env python
-# coding: utf-8
+"""diabetes_prediction
 
-# In[90]:
-
-
+Returns:
+    csv: output
+"""
+import logging
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import csv
 
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
+)
 
-# In[79]:
+x_train_data = pd.read_csv("training_data/Diabetes_XTrain.csv")
 
+y_train_data = pd.read_csv("training_data/Diabetes_YTrain.csv")
+test = pd.read_csv("test_cases/Diabetes_Xtest.csv")
+logging.info(f"x_train_data shape:{x_train_data.shape}")
+logging.info(f"y_train_data shape:{y_train_data.shape}")
+logging.info(f"test_data shape:{test.shape}")
 
-X = pd.read_csv('training_data\\Diabetes_XTrain.csv')
-Y = pd.read_csv('training_data\\Diabetes_YTrain.csv')
-test = pd.read_csv('test_cases\\Diabetes_Xtest.csv')
-print(X.shape)
-print(Y.shape)
-print(test.shape)
+data_x = x_train_data.values
+logging.info(f"data_x shape:{data_x.shape}, type: {type(data_x)}")
 
-
-# In[68]:
-
-
-X.head(n=5)
-
-
-# In[69]:
-
-
-Y.head(n=5)
-
-
-# In[70]:
-
-
-print(X.shape)
-print(Y.shape)
-
-
-# In[80]:
-
-
-data_x = X.values
-print(data_x.shape)
-print(type(data_x))
-
-data_y = Y.values
-print(data_y.shape)
-print(type(data_y))
+data_y = y_train_data.values
+logging.info(f"data_x shape:{data_y.shape}, type: {type(data_y)}")
 
 data_test_x = test.values
-print(data_test_x.shape)
-print(type(data_test_x))
+logging.info(f"data_x shape:{data_test_x.shape}, type: {type(data_test_x)}")
+
+x_train_data_train = data_x[:, 0:]
+logging.info(
+    f"updated x_train_data shape:{x_train_data_train.shape}, type: {type(x_train_data_train)}"
+)
+y_train_data_train = data_y[:, 0]
+logging.info(
+    f"updated y_train_data shape:{y_train_data_train.shape}, type: {type(y_train_data_train)}"
+)
+x_train_data_test = data_test_x
+logging.info(
+    f"updated x_train_data_test shape:{x_train_data_test.shape}, type: {type(x_train_data_test)}"
+)
 
 
-# In[82]:
+def dist(query_point, x_train_data_i) -> float:
+    """finds the distribution
+
+    Args:
+        query_point
+        x_train_data_i
+
+    Returns:
+        float: value
+    """
+    value = np.sqrt(sum((query_point - x_train_data_i) ** 2))
+    return value
 
 
-X_train = data_x[:,0:]
-print(X_train.shape)
-Y_train = data_y[:,0]
-print(Y_train.shape)
-X_test = data_test_x
-print(X_test.shape)
+# Test Time
+def knn(x_train_data_train_value, y_train_data_train_value, query_point, k=5):
+    """_summary_
 
+    Args:
+        x_train_data_train_value (_type_): _description_
+        y_train_data (_type_): _description_
+        query_point (_type_): _description_
+        k (int, optional): _description_. Defaults to 5.
 
-# In[83]:
-
-
-print(type(X_train))
-print(type(Y_train))
-print(type(X_test))
-
-
-# In[74]:
-
-
-def dist(x1,x2):
-    return np.sqrt(sum((x1-x2)**2))
-
-# Test Time 
-def knn(X,Y,queryPoint,k=5):
-    
+    Returns:
+        _type_: _description_
+    """
     vals = []
-    m = X.shape[0]
-    
-    for i in range(m):
-        d = dist(queryPoint,X[i])
-        vals.append((d,Y[i]))
-        
-    
+    x_train_shape = x_train_data_train_value.shape[0]
+
+    for i in range(x_train_shape):
+        dist_value = dist(query_point, x_train_data_train_value[i])
+        vals.append((dist_value, y_train_data_train_value[i]))
+
     vals = sorted(vals)
     # Nearest/First K points
     vals = vals[:k]
-    
+
     vals = np.array(vals)
-    
-    #print(vals)
-    
-    new_vals = np.unique(vals[:,1],return_counts=True)
-    #print(new_vals)
-    
+
+    new_vals = np.unique(vals[:, 1], return_counts=True)
+
     index = new_vals[1].argmax()
     pred = new_vals[0][index]
-    
+
     return pred
 
 
-# In[120]:
-
-
-filename = 'output.csv'
+FILE_NAME = "output.csv"
 output_list = []
-for i in range(0,192):
-    pred = knn(X_train, Y_train, X_test[i])
-    output_list.append(int(pred))
-#print(output_list)
+for row in range(0, 192):
+    prediction = knn(x_train_data_train, y_train_data_train, x_train_data_test[row])
+    output_list.append(int(prediction))
 df = pd.DataFrame(output_list)
-print(df.shape)
-df.to_csv('output.csv', index = False)
+logging.info(f"final output dataframe: {df.shape}")
+df.to_csv("output.csv", index=False)
